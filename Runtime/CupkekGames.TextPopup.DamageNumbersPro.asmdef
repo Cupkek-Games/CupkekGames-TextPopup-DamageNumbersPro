@@ -1,0 +1,17 @@
+{
+    "name": "CupkekGames.TextPopup.DamageNumbersPro",
+    "rootNamespace": "",
+    "references": [
+        "GUID:8d9e84799a3968d4ba38c55892d14093",
+        "GUID:90697f631d704534ba5b84d36cd028c5"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
