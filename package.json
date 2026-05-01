@@ -1,7 +1,7 @@
 {
   "name": "com.cupkekgames.textpopup.damagenumberspro",
   "displayName": "CupkekGames TextPopup — DamageNumbersPro Bridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "CupkekGames",
     "url": "https://www.docs.cupkek.games"
@@ -16,6 +16,6 @@
     "CupkekGames"
   ],
   "dependencies": {
-    "com.cupkekgames.textpopup": "0.1.0"
+    "com.cupkekgames.textpopup": "0.1.1"
   }
 }
