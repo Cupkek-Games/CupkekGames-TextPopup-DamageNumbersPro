@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using DamageNumbersPro;
 using CupkekGames.TextPopup;
@@ -7,25 +9,32 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
 {
   public class DamageNumberManager : MonoBehaviour, IDamagePopup, IHealPopup, IStatusPopup, INumberPopupManager
   {
+    [Serializable]
+    public struct EffectPrefabEntry
+    {
+      public string Kind;
+      public DamageNumber Prefab;
+    }
+
     [Header("Damage Numbers")]
     [SerializeField]
     private Vector3 _damageNumberOffset = new Vector3(0, 4, 0);
 
     [SerializeField] private DamageNumber _prefabDamage;
-    [SerializeField] private string _critPrefix = "<sprite name=\"Damage\">";
+    [SerializeField] private string _critPrefix = "";
     [SerializeField] private DamageNumber _prefabDamageWeak;
-    [SerializeField] private string _critPrefixWeak = "<sprite name=\"DamageWeak\">";
+    [SerializeField] private string _critPrefixWeak = "";
     [SerializeField] private DamageNumber _prefabDamageStrong;
-    [SerializeField] private string _critPrefixStrong = "<sprite name=\"DamageStrong\">";
+    [SerializeField] private string _critPrefixStrong = "";
     [SerializeField] private DamageNumber _prefabStatusEffectPositive;
     [SerializeField] private DamageNumber _prefabStatusEffectNegative;
     [SerializeField] private DamageNumber _prefabHeal;
     [SerializeField] private DamageNumber _prefabShield;
-    [SerializeField] private DamageNumber _prefabPoison;
-    [SerializeField] private DamageNumber _prefabBleed;
-    [SerializeField] private DamageNumber _prefabMoodPositive;
 
-    [SerializeField] private DamageNumber _prefabMoodNegative;
+    [Header("Caller-defined effect prefabs (lookup by kind string)")]
+    [SerializeField] private List<EffectPrefabEntry> _effectPrefabs = new List<EffectPrefabEntry>();
+
+    private readonly Dictionary<string, DamageNumber> _effectMap = new Dictionary<string, DamageNumber>();
 
     // Runtime settings
     private float _scaleMaxDamage = 1000f;
@@ -40,10 +49,13 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
       _prefabStatusEffectNegative.PrewarmPool();
       _prefabHeal.PrewarmPool();
       _prefabShield.PrewarmPool();
-      _prefabPoison.PrewarmPool();
-      _prefabBleed.PrewarmPool();
-      _prefabMoodPositive.PrewarmPool();
-      _prefabMoodNegative.PrewarmPool();
+
+      foreach (EffectPrefabEntry entry in _effectPrefabs)
+      {
+        if (string.IsNullOrEmpty(entry.Kind) || entry.Prefab == null) continue;
+        entry.Prefab.PrewarmPool();
+        _effectMap[entry.Kind] = entry.Prefab;
+      }
     }
 
     public void SetScaleMaxDamage(float maxDamage)
@@ -124,32 +136,14 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
       damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
     }
 
-    public void ShowPoison(Vector3 center, int value)
+    public void ShowEffect(Vector3 center, string kind, int value)
     {
-      Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber = _prefabPoison.Spawn(position, value);
-      damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
-    }
+      if (string.IsNullOrEmpty(kind)) return;
+      if (!_effectMap.TryGetValue(kind, out DamageNumber prefab) || prefab == null) return;
 
-    public void ShowBleed(Vector3 center, int value)
-    {
       Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber = _prefabBleed.Spawn(position, value);
+      DamageNumber damageNumber = prefab.Spawn(position, value);
       damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
-    }
-
-    public void ShowMood(Vector3 center, bool positive, int value)
-    {
-      Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber;
-      if (positive)
-      {
-        damageNumber = _prefabMoodPositive.Spawn(position, value);
-      }
-      else
-      {
-        damageNumber = _prefabMoodNegative.Spawn(position, value);
-      }
     }
   }
 }
