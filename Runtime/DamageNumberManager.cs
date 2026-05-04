@@ -4,146 +4,80 @@ using UnityEngine;
 using DamageNumbersPro;
 using CupkekGames.TextPopup;
 
-
 namespace CupkekGames.TextPopup.DamageNumbersPro
 {
-  public class DamageNumberManager : MonoBehaviour, IDamagePopup, IHealPopup, IStatusPopup, INumberPopupManager
-  {
-    [Serializable]
-    public struct EffectPrefabEntry
+    public class DamageNumberManager : MonoBehaviour, IPopupManager
     {
-      public string Kind;
-      public DamageNumber Prefab;
-    }
-
-    [Header("Damage Numbers")]
-    [SerializeField]
-    private Vector3 _damageNumberOffset = new Vector3(0, 4, 0);
-
-    [SerializeField] private DamageNumber _prefabDamage;
-    [SerializeField] private string _critPrefix = "";
-    [SerializeField] private DamageNumber _prefabDamageWeak;
-    [SerializeField] private string _critPrefixWeak = "";
-    [SerializeField] private DamageNumber _prefabDamageStrong;
-    [SerializeField] private string _critPrefixStrong = "";
-    [SerializeField] private DamageNumber _prefabStatusEffectPositive;
-    [SerializeField] private DamageNumber _prefabStatusEffectNegative;
-    [SerializeField] private DamageNumber _prefabHeal;
-    [SerializeField] private DamageNumber _prefabShield;
-
-    [Header("Caller-defined effect prefabs (lookup by kind string)")]
-    [SerializeField] private List<EffectPrefabEntry> _effectPrefabs = new List<EffectPrefabEntry>();
-
-    private readonly Dictionary<string, DamageNumber> _effectMap = new Dictionary<string, DamageNumber>();
-
-    // Runtime settings
-    private float _scaleMaxDamage = 1000f;
-    private const float _scaleMaxDamageMultiplier = 3f;
-
-    private void Awake()
-    {
-      _prefabDamage.PrewarmPool();
-      _prefabDamageWeak.PrewarmPool();
-      _prefabDamageStrong.PrewarmPool();
-      _prefabStatusEffectPositive.PrewarmPool();
-      _prefabStatusEffectNegative.PrewarmPool();
-      _prefabHeal.PrewarmPool();
-      _prefabShield.PrewarmPool();
-
-      foreach (EffectPrefabEntry entry in _effectPrefabs)
-      {
-        if (string.IsNullOrEmpty(entry.Kind) || entry.Prefab == null) continue;
-        entry.Prefab.PrewarmPool();
-        _effectMap[entry.Kind] = entry.Prefab;
-      }
-    }
-
-    public void SetScaleMaxDamage(float maxDamage)
-    {
-      _scaleMaxDamage = maxDamage * _scaleMaxDamageMultiplier;
-      Debug.Log($"Set DamageNumber scale max damage to {_scaleMaxDamage}");
-    }
-
-    public void ShowDamage(Vector3 center, int value, float elementMultiplier, bool isCrit)
-    {
-      Vector3 position = center + _damageNumberOffset;
-
-      DamageNumber damageNumber;
-
-      if (elementMultiplier < 1f)
-      {
-        damageNumber = _prefabDamageWeak.Spawn(position, value);
-      }
-      else if (elementMultiplier > 1f)
-      {
-        damageNumber = _prefabDamageStrong.Spawn(position, value);
-      }
-      else
-      {
-        damageNumber = _prefabDamage.Spawn(position, value);
-      }
-
-      damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
-
-      if (isCrit)
-      {
-        if (elementMultiplier < 1f)
+        [Serializable]
+        public class PopupKindEntry
         {
-          damageNumber.leftText = _critPrefixWeak + "-";
+            public string Kind;
+            public DamageNumber Prefab;
+
+            [Tooltip("Default left-text for this kind (e.g. '-' for damage). Used when no TextPopupContext.LeftText is provided.")]
+            public string DefaultLeftText = "";
+
+            [Tooltip("Optional prefix prepended to left-text when DamagePopupContext.IsCrit is true (e.g. '★').")]
+            public string CritPrefix = "";
         }
-        else if (elementMultiplier > 1f)
+
+        [Header("Damage Numbers")]
+        [SerializeField] private Vector3 _offset = new Vector3(0, 4, 0);
+
+        [Header("Popup kinds (kind, prefab, optional left-text + crit prefix)")]
+        [SerializeField] private List<PopupKindEntry> _entries = new List<PopupKindEntry>();
+
+        private readonly Dictionary<string, PopupKindEntry> _map = new Dictionary<string, PopupKindEntry>();
+
+        // Runtime damage scaling (set by combat manager when max damage is known)
+        private float _scaleMaxValue = 1000f;
+        private const float ScaleMaxValueMultiplier = 3f;
+
+        private void Awake()
         {
-          damageNumber.leftText = _critPrefixStrong + "-";
+            foreach (PopupKindEntry entry in _entries)
+            {
+                if (string.IsNullOrEmpty(entry.Kind) || entry.Prefab == null)
+                    continue;
+                entry.Prefab.PrewarmPool();
+                _map[entry.Kind] = entry;
+            }
         }
-        else
+
+        /// <summary>
+        /// Damage popups scale their visual size by value relative to a max — set the max
+        /// once max enemy HP is known so visuals don't clip on big hits.
+        /// </summary>
+        public void SetScaleMaxValue(float maxValue)
         {
-          damageNumber.leftText = _critPrefix + "-";
+            _scaleMaxValue = maxValue * ScaleMaxValueMultiplier;
         }
-      }
-      else
-      {
-        damageNumber.leftText = "-";
-      }
+
+        public void Show(string kind, Vector3 center, int value = 0, IPopupContext context = null)
+        {
+            if (string.IsNullOrEmpty(kind)) return;
+            if (!_map.TryGetValue(kind, out PopupKindEntry entry) || entry?.Prefab == null) return;
+
+            Vector3 position = center + _offset;
+            DamageNumber damageNumber = entry.Prefab.Spawn(position, value);
+            damageNumber.scaleByNumberSettings.toNumber = _scaleMaxValue;
+
+            string leftText = ResolveLeftText(entry, context);
+            if (leftText != null)
+                damageNumber.leftText = leftText;
+        }
+
+        private static string ResolveLeftText(PopupKindEntry entry, IPopupContext context)
+        {
+            switch (context)
+            {
+                case TextPopupContext text:
+                    return text.LeftText;
+                case DamagePopupContext damage when damage.IsCrit:
+                    return entry.CritPrefix + entry.DefaultLeftText;
+                default:
+                    return string.IsNullOrEmpty(entry.DefaultLeftText) ? null : entry.DefaultLeftText;
+            }
+        }
     }
-
-    public void ShowStatusEffect(Vector3 center, bool positive, string leftText)
-    {
-      Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber;
-      if (positive)
-      {
-        damageNumber = _prefabStatusEffectPositive.Spawn(position);
-      }
-      else
-      {
-        damageNumber = _prefabStatusEffectNegative.Spawn(position);
-      }
-
-      damageNumber.leftText = leftText;
-    }
-
-    public void ShowHeal(Vector3 center, int value)
-    {
-      Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber = _prefabHeal.Spawn(position, value);
-      damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
-    }
-
-    public void ShowShield(Vector3 center, int value)
-    {
-      Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber = _prefabShield.Spawn(position, value);
-      damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
-    }
-
-    public void ShowEffect(Vector3 center, string kind, int value)
-    {
-      if (string.IsNullOrEmpty(kind)) return;
-      if (!_effectMap.TryGetValue(kind, out DamageNumber prefab) || prefab == null) return;
-
-      Vector3 position = center + _damageNumberOffset;
-      DamageNumber damageNumber = prefab.Spawn(position, value);
-      damageNumber.scaleByNumberSettings.toNumber = _scaleMaxDamage;
-    }
-  }
 }

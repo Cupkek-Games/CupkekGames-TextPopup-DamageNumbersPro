@@ -1,14 +1,14 @@
 {
   "name": "com.cupkekgames.textpopup.damagenumberspro",
   "displayName": "CupkekGames TextPopup — DamageNumbersPro Bridge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "CupkekGames",
     "url": "https://www.docs.cupkek.games"
   },
   "unity": "6000.0",
   "documentationUrl": "https://docs.cupkek.games/",
-  "description": "Adapter that implements CupkekGames.TextPopup interfaces (IDamagePopup, IHealPopup, IStatusPopup, INumberPopupManager) on top of the DamageNumbersPro asset. Drop-in concrete backend for the TextPopup contract.",
+  "description": "Adapter that implements CupkekGames.TextPopup IPopupManager on top of the DamageNumbersPro asset. Drop-in kind-driven popup backend.",
   "keywords": [
     "TextPopup",
     "DamageNumbers",
@@ -16,6 +16,6 @@
     "CupkekGames"
   ],
   "dependencies": {
-    "com.cupkekgames.textpopup": "0.2.0"
+    "com.cupkekgames.textpopup": "0.3.0"
   }
 }
