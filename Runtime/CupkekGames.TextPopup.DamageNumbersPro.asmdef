@@ -11,7 +11,15 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
+    "defineConstraints": [
+        "DAMAGE_NUMBERS_PRO_INSTALLED"
+    ],
+    "versionDefines": [
+        {
+            "name": "DamageNumbersPro",
+            "expression": "",
+            "define": "DAMAGE_NUMBERS_PRO_INSTALLED"
+        }
+    ],
     "noEngineReferences": false
 }
