@@ -56,10 +56,18 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
         public void Show(string kind, Vector3 center, int value = 0, IPopupContext context = null)
         {
             if (string.IsNullOrEmpty(kind)) return;
-            if (!_map.TryGetValue(kind, out PopupKindEntry entry) || entry?.Prefab == null) return;
+            if (!_map.TryGetValue(kind, out PopupKindEntry entry))
+            {
+                Debug.LogError($"[DamageNumberManager] No popup entry for kind '{kind}'. Add it to the entries list.", this);
+                return;
+            }
 
             Vector3 position = center + _offset;
-            DamageNumber damageNumber = entry.Prefab.Spawn(position, value);
+            // Spawn(position, number) switches the number on; a text-only prefab
+            // (enableNumber off) keeps it off so no stray value trails the text.
+            DamageNumber damageNumber = entry.Prefab.enableNumber
+                ? entry.Prefab.Spawn(position, value)
+                : entry.Prefab.Spawn(position);
             damageNumber.scaleByNumberSettings.toNumber = _scaleMaxValue;
 
             string leftText = ResolveLeftText(entry, context);
