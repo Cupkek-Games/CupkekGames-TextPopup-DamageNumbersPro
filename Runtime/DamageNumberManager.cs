@@ -73,10 +73,6 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
                 : prefab.Spawn(position);
             damageNumber.scaleByNumberSettings.toNumber = _scaleMaxValue;
 
-            // Every spawn is tinted, white when the call names no colour: a pooled popup keeps the
-            // last tint, and a popup's own colours live in its vertex gradient.
-            damageNumber.SetColor(damage != null && damage.Color.HasValue ? damage.Color.Value : Color.white);
-
             if (context is TextPopupContext text && text.LeftText != null)
                 damageNumber.leftText = text.LeftText;
         }
