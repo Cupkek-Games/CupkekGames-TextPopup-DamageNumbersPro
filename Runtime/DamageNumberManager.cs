@@ -12,19 +12,24 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
         public class PopupKindEntry
         {
             public string Kind;
+
+            [Tooltip("The kind's popup. Its own left text shows (a TextPopupContext replaces it for one call).")]
             public DamageNumber Prefab;
 
-            [Tooltip("Default left-text for this kind (e.g. '-' for damage). Used when no TextPopupContext.LeftText is provided.")]
-            public string DefaultLeftText = "";
+            [Tooltip("A critical hit's popup (best a variant of the prefab, so it keeps the kind's look); empty uses the prefab.")]
+            public DamageNumber CritPrefab;
 
-            [Tooltip("Optional prefix prepended to left-text when DamagePopupContext.IsCrit is true (e.g. '★').")]
-            public string CritPrefix = "";
+            [Tooltip("The killing blow's popup (best a variant of the prefab); empty falls back to the crit's or the prefab.")]
+            public DamageNumber KillPrefab;
+
+            [Tooltip("The killing blow's top text when it was an overkill; empty keeps the kill popup's own top text.")]
+            public string OverkillTopText = "";
         }
 
         [Header("Damage Numbers")]
         [SerializeField] private Vector3 _offset = new Vector3(0, 4, 0);
 
-        [Header("Popup kinds (kind, prefab, optional left-text + crit prefix)")]
+        [Header("Popup kinds (kind, prefab, optional crit and kill variants)")]
         [SerializeField] private List<PopupKindEntry> _entries = new List<PopupKindEntry>();
 
         private readonly Dictionary<string, PopupKindEntry> _map = new Dictionary<string, PopupKindEntry>();
@@ -40,6 +45,8 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
                 if (string.IsNullOrEmpty(entry.Kind) || entry.Prefab == null)
                     continue;
                 entry.Prefab.PrewarmPool();
+                if (entry.CritPrefab != null) entry.CritPrefab.PrewarmPool();
+                if (entry.KillPrefab != null) entry.KillPrefab.PrewarmPool();
                 _map[entry.Kind] = entry;
             }
         }
@@ -62,30 +69,35 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
                 return;
             }
 
+            DamagePopupContext damage = context as DamagePopupContext;
+            DamageNumber prefab = PrefabFor(entry, damage);
+
             Vector3 position = center + _offset;
             // Spawn(position, number) switches the number on; a text-only prefab
             // (enableNumber off) keeps it off so no stray value trails the text.
-            DamageNumber damageNumber = entry.Prefab.enableNumber
-                ? entry.Prefab.Spawn(position, value)
-                : entry.Prefab.Spawn(position);
+            DamageNumber damageNumber = prefab.enableNumber
+                ? prefab.Spawn(position, value)
+                : prefab.Spawn(position);
             damageNumber.scaleByNumberSettings.toNumber = _scaleMaxValue;
 
-            string leftText = ResolveLeftText(entry, context);
-            if (leftText != null)
-                damageNumber.leftText = leftText;
+            // A pooled popup keeps what the last spawn set, so a kill's top text is set every time.
+            if (prefab == entry.KillPrefab)
+            {
+                damageNumber.topText = damage != null && damage.IsOverkill && !string.IsNullOrEmpty(entry.OverkillTopText)
+                    ? entry.OverkillTopText
+                    : prefab.topText;
+            }
+
+            if (context is TextPopupContext text && text.LeftText != null)
+                damageNumber.leftText = text.LeftText;
         }
 
-        private static string ResolveLeftText(PopupKindEntry entry, IPopupContext context)
+        /// <summary>The popup a call shows: the kill's for a killing blow, the crit's for a crit, else the kind's own.</summary>
+        public static DamageNumber PrefabFor(PopupKindEntry entry, DamagePopupContext damage)
         {
-            switch (context)
-            {
-                case TextPopupContext text:
-                    return text.LeftText;
-                case DamagePopupContext damage when damage.IsCrit:
-                    return entry.CritPrefix + entry.DefaultLeftText;
-                default:
-                    return string.IsNullOrEmpty(entry.DefaultLeftText) ? null : entry.DefaultLeftText;
-            }
+            if (damage != null && damage.IsKill && entry.KillPrefab != null) return entry.KillPrefab;
+            if (damage != null && damage.IsCrit && entry.CritPrefab != null) return entry.CritPrefab;
+            return entry.Prefab;
         }
     }
 }
