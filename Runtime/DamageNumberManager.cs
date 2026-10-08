@@ -18,18 +18,12 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
 
             [Tooltip("A critical hit's popup (best a variant of the prefab, so it keeps the kind's look); empty uses the prefab.")]
             public DamageNumber CritPrefab;
-
-            [Tooltip("The killing blow's popup (best a variant of the prefab); empty falls back to the crit's or the prefab.")]
-            public DamageNumber KillPrefab;
-
-            [Tooltip("The killing blow's top text when it was an overkill; empty keeps the kill popup's own top text.")]
-            public string OverkillTopText = "";
         }
 
         [Header("Damage Numbers")]
         [SerializeField] private Vector3 _offset = new Vector3(0, 4, 0);
 
-        [Header("Popup kinds (kind, prefab, optional crit and kill variants)")]
+        [Header("Popup kinds (kind, prefab, optional crit variant)")]
         [SerializeField] private List<PopupKindEntry> _entries = new List<PopupKindEntry>();
 
         private readonly Dictionary<string, PopupKindEntry> _map = new Dictionary<string, PopupKindEntry>();
@@ -46,7 +40,6 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
                     continue;
                 entry.Prefab.PrewarmPool();
                 if (entry.CritPrefab != null) entry.CritPrefab.PrewarmPool();
-                if (entry.KillPrefab != null) entry.KillPrefab.PrewarmPool();
                 _map[entry.Kind] = entry;
             }
         }
@@ -80,22 +73,17 @@ namespace CupkekGames.TextPopup.DamageNumbersPro
                 : prefab.Spawn(position);
             damageNumber.scaleByNumberSettings.toNumber = _scaleMaxValue;
 
-            // A pooled popup keeps what the last spawn set, so a kill's top text is set every time.
-            if (prefab == entry.KillPrefab)
-            {
-                damageNumber.topText = damage != null && damage.IsOverkill && !string.IsNullOrEmpty(entry.OverkillTopText)
-                    ? entry.OverkillTopText
-                    : prefab.topText;
-            }
+            // Every spawn is tinted, white when the call names no colour: a pooled popup keeps the
+            // last tint, and a popup's own colours live in its vertex gradient.
+            damageNumber.SetColor(damage != null && damage.Color.HasValue ? damage.Color.Value : Color.white);
 
             if (context is TextPopupContext text && text.LeftText != null)
                 damageNumber.leftText = text.LeftText;
         }
 
-        /// <summary>The popup a call shows: the kill's for a killing blow, the crit's for a crit, else the kind's own.</summary>
+        /// <summary>The popup a call shows: the crit's for a crit, else the kind's own.</summary>
         public static DamageNumber PrefabFor(PopupKindEntry entry, DamagePopupContext damage)
         {
-            if (damage != null && damage.IsKill && entry.KillPrefab != null) return entry.KillPrefab;
             if (damage != null && damage.IsCrit && entry.CritPrefab != null) return entry.CritPrefab;
             return entry.Prefab;
         }

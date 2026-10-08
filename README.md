@@ -6,7 +6,7 @@ Concrete backend for [CupkekGames.TextPopup](https://github.com/Cupkek-Games/Cup
 
 **Runtime** (`CupkekGames.TextPopup.DamageNumbersPro.asmdef`)
 
-- `DamageNumberManager` — MonoBehaviour implementation of `IPopupManager`. Holds a `List<PopupKindEntry>` mapping designer-defined kind strings to `DamageNumber` prefabs, each with an optional crit and kill popup (best prefab variants of the kind's prefab, so they keep its look and change only the motion and text) and an overkill top text, and forwards `Show(kind, …)` calls to DamageNumbersPro. A prefab's own left text shows; a `TextPopupContext` replaces it for one call.
+- `DamageNumberManager` — MonoBehaviour implementation of `IPopupManager`. Holds a `List<PopupKindEntry>` mapping designer-defined kind strings to `DamageNumber` prefabs, each with an optional crit popup (best a prefab variant of the kind's prefab, so it keeps its look and changes only size and motion), and forwards `Show(kind, …)` calls to DamageNumbersPro. A prefab's own left text shows; a `TextPopupContext` replaces it for one call. Every spawn is tinted with the `DamagePopupContext` colour, or white: keep a prefab's own colours in its vertex gradient.
 
 ## Dependencies
 
